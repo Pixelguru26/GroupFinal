@@ -2,10 +2,9 @@
 
 /*
 Members:
-	Blake
+	Blake Johns
+	Ryan Morgan
 	Caleb Tomlinson
-	Ryan
-
 */
 
 // core headers
@@ -27,6 +26,7 @@ void loadChart(string fileName, char chart[15][30]);
 void saveChart(string fileName, char chart[15][30]);
 void resetChart(string fileName, char chart[15][30]);
 double getPrice(int row);
+bool cinFailCheck();
 int displayMenu();
 //	menu options
 void requestTickets(char chart[15][30]);
@@ -61,6 +61,9 @@ int main() {
 		case 4:
 			quitMenu(running);
 			break;
+		case 41:
+			game();
+			break;
 		default:
 			cout << input << " is not a valid menu option." << endl;
 		}
@@ -74,15 +77,17 @@ int main() {
 //	displays the main menu, and accepts/returns an input selection
 int displayMenu() {
 	int ret;
-	system("CLS");
-	cout << "Please make a selection from the following menu: " << endl;
-	cout << "1 - Request tickets" << endl;
-	cout << "2 - Display seating" << endl;
-	cout << "3 - Display sales report" << endl;
-	cout << "4 - Reset availiability" << endl;
-	cout << "5 - Quit" << endl;
-	cout << ">> ";
-	cin >> ret;
+	do {
+		system("CLS");
+		cout << "Please make a selection from the following menu: " << endl;
+		cout << "1 - Request tickets" << endl;
+		cout << "2 - Display seating" << endl;
+		cout << "3 - Display sales report" << endl;
+		cout << "4 - Reset availiability" << endl;
+		cout << "5 - Quit" << endl;
+		cout << ">> ";
+		cin >> ret;
+	} while (cinFailCheck());
 	return ret;
 }
 //	performs ticket request action, defaults to game if all spaces unavailable
@@ -261,4 +266,13 @@ void resetChart(string fileName, char chart[15][30]) {
 //	takes row of a seat and returns the price of that seat
 double getPrice(int row) {
 	return 16 - row;
+}
+//	takes no args, fixes cin fails, returns cin.fail()
+bool cinFailCheck() {
+	if (cin.fail()) {
+		cin.clear();
+		cin.ignore();
+		return true;
+	}
+	return false;
 }

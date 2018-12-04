@@ -37,5 +37,8 @@
     <Text Include="SeatAvailability.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="Overworld.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
