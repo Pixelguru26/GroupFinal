@@ -31,9 +31,7 @@ const int SPAWNLIMIT = 5;
 // forward declarations
 void displayWorld(char world[WWIDTH][WHEIGHT], int* enemies[], int count, char enemyVisuals[], int playerX, int playerY);
 void readWorld(char world[WWIDTH][WHEIGHT], string file);
-void setTile(char world[WWIDTH][WHEIGHT], int x, int y, char v);
-char getTile(char world[WWIDTH][WHEIGHT], int x, int y);
-void addEnemy(int* enemies[], int& count, int x, int y, int h);
+void addEnemy(int* enemies[], int& count, int type, int x, int y, int health);
 void remEnemy(int* enemies[], int& count, int i);
 bool movePlr(char world[WWIDTH][WHEIGHT], int& plrX, int& plrY, int newX, int newY);
 

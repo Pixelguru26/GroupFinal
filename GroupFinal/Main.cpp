@@ -26,10 +26,12 @@ void loadChart(string fileName, char chart[15][30]);
 void saveChart(string fileName, char chart[15][30]);
 void resetChart(string fileName, char chart[15][30]);
 double getPrice(int row);
+bool findSeat(char chart[15][30], int& x, int& y, int sx, int sy);
 bool cinFailCheck();
 int displayMenu();
 //	menu options
 void requestTickets(char chart[15][30]);
+void findTickets(char chart[15][30]);
 void salesReport(char chart[15][30]);
 void resetAvailability(char chart[15][30]);
 void quitMenu(bool& running);
@@ -50,15 +52,18 @@ int main() {
 			requestTickets(chart);
 			break;
 		case 1:
-			displaySeats(chart);
+			findTickets(chart);
 			break;
 		case 2:
-			salesReport(chart);
+			displaySeats(chart);
 			break;
 		case 3:
-			resetAvailability(chart);
+			salesReport(chart);
 			break;
 		case 4:
+			resetAvailability(chart);
+			break;
+		case 5:
 			quitMenu(running);
 			break;
 		case 41:
@@ -81,16 +86,17 @@ int displayMenu() {
 		system("CLS");
 		cout << "Please make a selection from the following menu: " << endl;
 		cout << "1 - Request tickets" << endl;
-		cout << "2 - Display seating" << endl;
-		cout << "3 - Display sales report" << endl;
-		cout << "4 - Reset availiability" << endl;
-		cout << "5 - Quit" << endl;
+		cout << "2 - Find tickets" << endl;
+		cout << "3 - Display seating" << endl;
+		cout << "4 - Display sales report" << endl;
+		cout << "5 - Reset availability" << endl;
+		cout << "6 - Quit" << endl;
 		cout << ">> ";
 		cin >> ret;
 	} while (cinFailCheck());
 	return ret;
 }
-//	performs ticket request action, defaults to game if all spaces unavailable
+//	performs ticket request action
 void requestTickets(char chart[15][30]) {
 	int ticketCount;
 	int row, column;
@@ -135,7 +141,7 @@ void requestTickets(char chart[15][30]) {
 	}
 	if (available) {
 		cout << "Your total price comes out to $" << price << endl;
-		cout << "Please confirm this puchase (Y/n): ";
+		cout << "Please confirm this purchase (Y/n): ";
 		cin >> confirmation;
 		if (confirmation == 'Y' || confirmation == 'y') {
 			for (int i = 0; i < ticketCount; i++) {
@@ -149,7 +155,7 @@ void requestTickets(char chart[15][30]) {
 		}
 	}
 	else {
-		bool doGame = true;
+		/*bool doGame = true;
 		for (int y = 0; y < 15; y++) {
 			for (int x = 0; x < 30; x++) {
 				if (chart[y][x] != '*') {
@@ -160,7 +166,53 @@ void requestTickets(char chart[15][30]) {
 		}
 		if (doGame) {
 			game();
+		}*/
+	}
+}
+//	finds ticket locations
+void findTickets(char chart[15][30]) {
+	int ticketCount;
+	int* rows;
+	int* columns;
+	double price = 0;
+	bool available = true;
+	char confirmation;
+
+	cout << "The seating chart is as follows, with seats marked # being available: " << endl;
+	displaySeats(chart);
+
+	cout << "How many tickets would you like to purchase?\n>> ";
+	cin >> ticketCount;
+
+	rows = new int[ticketCount];
+	columns = new int[ticketCount];
+	// request ticket information
+	for (int i = 0; i < ticketCount; i++) {
+		// receive and validate ticket
+		if (findSeat(chart, rows[i], columns[i], i == 0 ? -1 : rows[i - 1], i == 0 ? 0 : columns[i - 1])) {
+			price += getPrice(rows[i]);
 		}
+		else {
+			cout << "Sorry, seat #" << i + 1 << " is unavailable. Try again." << endl;
+			return;
+		}
+	}
+	if (available) {
+		cout << "Your total price comes out to $" << price << endl;
+		cout << "Please confirm this purchase (Y/n): ";
+		cin >> confirmation;
+		if (confirmation == 'Y' || confirmation == 'y') {
+			for (int i = 0; i < ticketCount; i++) {
+				chart[columns[i]][rows[i]] = '*';
+			}
+			saveChart("SeatAvailability.txt", chart);
+			cout << "The purchase has been confirmed, and the seats reserved." << endl;
+		}
+		else {
+			cout << "The purchase has been declined." << endl;
+		}
+	}
+	else {
 	}
 }
 //	displays a sales report based on seat information
@@ -181,10 +233,19 @@ void salesReport(char chart[15][30]) {
 //	displays a confirmation, then resets seat availability
 void resetAvailability(char chart[15][30]) {
 	char input;
+	string pass;
 	cout << "Are you sure you wish to clear all seat availability information and sales?\nThis cannot be undone. (Y/n): ";
 	cin >> input;
 	if (input == 'Y' || input == 'y') {
-		resetChart("SeatAvailability.txt", chart);
+		cout << "Please enter the password: ";
+		cin >> pass;
+		if (pass == "admin")
+		{
+			resetChart("SeatAvailability.txt", chart);
+		}
+		else {
+			cout << "Incorrect password. Returning to main menu." << endl;
+		}
 	}
 }
 //	quit confirmation
@@ -266,6 +327,23 @@ void resetChart(string fileName, char chart[15][30]) {
 //	takes row of a seat and returns the price of that seat
 double getPrice(int row) {
 	return 16 - row;
+}
+//	finds the first available seat past [sx,sy] in reading order.
+bool findSeat(char chart[15][30], int& x, int& y, int sx, int sy)
+{
+	x = -1;
+	y = -1;
+	for (int i = (sy * 30 + sx) + 1; i < 15 * 30; i++) {
+		sy = i / 30;
+		sx = i % 30;
+		cout << sx << " " << sy << endl;
+		if (chart[sy][sx] == '#') {
+			x = sx;
+			y = sy;
+			return true;
+		}
+	}
+	return false;
 }
 //	takes no args, fixes cin fails, returns cin.fail()
 bool cinFailCheck() {
