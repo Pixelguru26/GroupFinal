@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <fstream>
+#include <sstream>
 
 #include "Util.h"
 
@@ -51,6 +52,7 @@ void loadChart(string fileName, char chart[15][30]) {
 			}
 		}
 	}
+	reader.close();
 }
 //	takes file name and chart, writes seat data to file as a block
 void saveChart(string fileName, char chart[15][30]) {
@@ -74,26 +76,49 @@ void resetChart(string fileName, char chart[15][30]) {
 	saveChart(fileName, chart);
 }
 //	???
-double loadSales(string fileName, double arr[], int& size, int& maxIndex) {
+double loadSales(string fileName, vector<string> arr, int& size, int& maxIndex) {
 	ifstream reader;
-	double buffer;
-	double total = 0;
+	string buffer;
+	maxIndex = 0;
 	reader.open(fileName);
 	if (reader.good()) {
-		while (reader >> buffer) {
-			total += buffer;
+		while (getline(reader, buffer)) {
 			addItem(arr, size, maxIndex, buffer);
 		}
 	}
-	return total;
+	reader.close();
+	return 0; // legacy, I can't change it now.
 }
 //	???
-void saveSales(string fileName, double arr[], int& size, int& maxIndex) {
+void saveSales(string fileName, string arr[], int& size, int& maxIndex) {
 	ofstream writer;
 	writer.open(fileName);
 	for (int i = 0; i < maxIndex; i++) {
 		writer << arr[i] << endl;
 	}
+	writer.close();
+}
+//	???
+double displaySales(string arr[], int& size, int& maxIndex) {
+	stringstream ss;
+	double total = 0;
+	double price;
+	int x, y;
+	for (int i = 0; i < maxIndex; i++) {
+		ss << arr[i];
+		ss >> price;
+		ss >> x;
+		ss >> y;
+		if (x == -1) {
+			cout << "PURCHASE #" << i + 1 << ": multipurchase. Seats: " << y << ", cost: $" << price << endl;
+			total += price;
+		}
+		else {
+			total += price;
+			cout << "PURCHASE #" << i + 1 << ": row #" << y << " column #" << x << " cost: $" << price << endl;
+		}
+	}
+	return total;
 }
 //	takes row of a seat and returns the price of that seat
 double getPrice(int row) {

@@ -12,6 +12,7 @@ Members:
 #include <iomanip>
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 // project headers
 #include "Game.h"
@@ -19,49 +20,45 @@ Members:
 #include "Util.h"
 
 using namespace std;
+namespace fs = std::experimental::filesystem::v1;
 
 int main() {
 	char chart[15][30];
-	double* sales = new double[2];
+	//string* sales = new string[2];
+	vector<string> sales(2);
 	int saleSize = 2;
 	int saleCount = 0;
+	int movieCount = 0;
+	int movieSize = 2;
+	for (auto& p : fs::directory_iterator("Movies")) {
+		movieCount++;
+		if (movieCount > movieSize) {
+			movieSize *= 2;
+		}
+	}
+	string* movies = new string[movieCount];
+	int i = 0;
+	for (auto& p : fs::directory_iterator("Movies")) {
+		movies[i++] = p.path().filename().string();
+		loadChart(p.path().string() + "\\SeatAvailability.txt", chart);
+		saveChart(p.path().string() + "\\SeatAvailability.txt", chart);
+		saleCount = 0;
+		loadSales(p.path().string() + "\\Sales.txt", sales, saleSize, saleCount);
+		cout << "MOVIE " << i << " : " << p.path().string() + "\\SeatAvailability.txt" << endl;
+	}
 	loadChart("SeatAvailability.txt",chart);
 	loadSales("Sales.txt", sales, saleSize, saleCount);
+	system("PAUSE");
+
 	int input;
 	bool running = true;
 
 	// simple standard number display settings for money.
 	cout << setprecision(2) << fixed << showpoint;
 
-	// core loop and interaction functionality.
+	// all functionality?
 	while (running) {
-		input = displayMenu();
-
-		switch (input-1) {
-		case 0:
-			requestTickets(chart, sales, saleSize, saleCount);
-			break;
-		case 1:
-			findTickets(chart, sales, saleSize, saleCount);
-			break;
-		case 2:
-			displaySeats(chart);
-			break;
-		case 3:
-			salesReport(chart, sales, saleSize, saleCount);
-			break;
-		case 4:
-			resetAvailability(chart, sales, saleSize, saleCount);
-			break;
-		case 5:
-			quitMenu(running);
-			break;
-		case 41:
-			game();
-			break;
-		default:
-			cout << input << " is not a valid menu option." << endl;
-		}
+		input = displayMenu(0, running, chart, movies, movieSize, movieCount, sales, saleSize, saleCount);
 		system("PAUSE");
 	}
 
