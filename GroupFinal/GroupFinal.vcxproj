@@ -117,15 +117,20 @@
   <ItemGroup>
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Util.cpp" />
+    <ClCompile Include="Menu.cpp" />
+    <ClCompile Include="Support.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h" />
+    <ClInclude Include="Proj.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Overworld.txt" />
     <Text Include="SeatAvailability.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Util.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
