@@ -39,19 +39,19 @@ int main() {
 
 		switch (input-1) {
 		case 0:
-			requestTickets(chart);
+			requestTickets(chart, sales, saleSize, saleCount);
 			break;
 		case 1:
-			findTickets(chart);
+			findTickets(chart, sales, saleSize, saleCount);
 			break;
 		case 2:
 			displaySeats(chart);
 			break;
 		case 3:
-			salesReport(chart);
+			salesReport(chart, sales, saleSize, saleCount);
 			break;
 		case 4:
-			resetAvailability(chart);
+			resetAvailability(chart, sales, saleSize, saleCount);
 			break;
 		case 5:
 			quitMenu(running);

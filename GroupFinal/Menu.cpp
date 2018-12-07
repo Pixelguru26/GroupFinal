@@ -39,7 +39,7 @@ int displayMenu() {
 	return ret;
 }
 //	performs ticket request action
-void requestTickets(char chart[15][30]) {
+void requestTickets(char chart[15][30], double* sales, int& saleSize, int& saleCount) {
 	int ticketCount;
 	int row, column;
 	int* rows;
@@ -98,7 +98,7 @@ void requestTickets(char chart[15][30]) {
 	}
 }
 //	finds ticket locations
-void findTickets(char chart[15][30]) {
+void findTickets(char chart[15][30], double* sales, int& saleSize, int& saleCount) {
 	int ticketCount;
 	int* rows;
 	int* columns;
@@ -144,22 +144,22 @@ void findTickets(char chart[15][30]) {
 	}
 }
 //	displays a sales report based on seat information
-void salesReport(char chart[15][30]) {
-	int sales = 0;
+void salesReport(char chart[15][30], double* sales, int& saleSize, int& saleCount) {
+	int count = 0;
 	double total = 0;
 	for (int y = 0; y < 15; y++) {
 		for (int x = 0; x < 30; x++) {
 			if (chart[y][x] == '*') {
-				sales++;
+				count++;
 				total += getPrice(y);
 			}
 		}
 	}
-	cout << "Seats sold: " << sales << endl;
+	cout << "Seats sold: " << count << endl;
 	cout << "Revenue: $" << total << endl;
 }
 //	displays a confirmation, then resets seat availability
-void resetAvailability(char chart[15][30]) {
+void resetAvailability(char chart[15][30], double* sales, int& saleSize, int& saleCount) {
 	char input;
 	string pass;
 	cout << "Are you sure you wish to clear all seat availability information and sales?\nThis cannot be undone. (Y/n): ";

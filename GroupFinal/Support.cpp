@@ -79,10 +79,13 @@ double loadSales(string fileName, double arr[], int& size, int& maxIndex) {
 	double buffer;
 	double total = 0;
 	reader.open(fileName);
-	while (reader >> buffer) {
-		total += buffer;
-		addItem(arr, size, maxIndex, buffer);
+	if (reader.good()) {
+		while (reader >> buffer) {
+			total += buffer;
+			addItem(arr, size, maxIndex, buffer);
+		}
 	}
+	return total;
 }
 //	???
 void saveSales(string fileName, double arr[], int& size, int& maxIndex) {
