@@ -25,13 +25,14 @@ using namespace std;
 const int WWIDTH = 64;
 const int WHEIGHT = 16;
 const int ENEMYSIZE = 4;
-const int SPAWNRATE = 5;
+const int SPAWNRATE = 2;
 
 // forward declarations
 int attack(int enemies[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int power, bool knockback);
-void displayWorld(char world[WWIDTH][WHEIGHT], int playerX, int playerY, int playerDirection);
+void displayWorld(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int playerX, int playerY, int playerDirection);
 void readWorld(char world[WWIDTH][WHEIGHT], string file);
-bool movePlr(char world[WWIDTH][WHEIGHT], int& plrX, int& plrY, int newX, int newY);
+bool movePlr(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& spawnLvl, int& plrX, int& plrY, int newX, int newY);
+void enemyAI(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& playerX, int& playerY, int playerDirection, double& plrLvl, int& plrH, int& spawnTimer);
 
 // main function
 void game() {
@@ -41,6 +42,7 @@ void game() {
 	char mainWorld[WWIDTH][WHEIGHT];
 	int enemies[WWIDTH][WHEIGHT];
 	int spawnTimer = 0;
+	int spawnLevel = 0;
 
 	// player data
 	int plrX = WWIDTH/2;
@@ -50,7 +52,7 @@ void game() {
 	int gil = 0;
 	int wood = 0;
 	int art = 0;
-	double plrLvl = 0;
+	double plrLvl = 1;
 
 
 	// game state vars
@@ -61,9 +63,13 @@ void game() {
 	readWorld(mainWorld, "Overworld.txt");
 	while (running) {
 		system("CLS");
-		displayWorld(mainWorld, plrX, plrY, plrD);
+		displayWorld(mainWorld, enemies, plrX, plrY, plrD);
 		// display game stats
-		cout << "LVL: " << (int)plrLvl << " || " << string(fmod(plrLvl, 1) * 10, '=') << string(10 - fmod(plrLvl, 1) * 10, ' ') << " || " << endl;
+		cout << "LVL: " << (int)plrLvl << " || ";
+		if (fmod(plrLvl, 1) > 0.1) {
+			cout << string(fmod(plrLvl, 1) * 10, '=');
+		}
+		cout << string(10 - fmod(plrLvl, 1) * 10, ' ') << " || " << endl;
 		cout << "HP: " << string(plrH, '+') << endl;
 		cout << "Gil $: " << gil << "\tWood T: " << wood << "\tArt @: " << art << endl;
 		cout << '[' << msg << ']' << endl;
@@ -75,38 +81,48 @@ void game() {
 			input[i] = __ascii_toupper(input[i]);
 		}
 
+		if (spawnLevel > 0) {
+			enemyAI(mainWorld, enemies, plrX, plrY, plrD, plrLvl, plrH, spawnTimer);
+		}
+
 		// the dreaded IFS
 		switch (input[0]) {
 		case 'W':
-			movePlr(mainWorld, plrX, plrY, plrX, plrY - 1);
+			plrD = 2;
+			movePlr(mainWorld, enemies, spawnLevel, plrX, plrY, plrX, plrY - 1);
 			break;
 		case 'A':
-			movePlr(mainWorld, plrX, plrY, plrX - 1, plrY);
+			plrD = 0;
+			movePlr(mainWorld, enemies, spawnLevel, plrX, plrY, plrX - 1, plrY);
 			break;
 		case 'S':
-			movePlr(mainWorld, plrX, plrY, plrX, plrY + 1);
+			plrD = 3;
+			movePlr(mainWorld, enemies, spawnLevel, plrX, plrY, plrX, plrY + 1);
 			break;
 		case 'D':
-			movePlr(mainWorld, plrX, plrY, plrX + 1, plrY);
+			plrD = 1;
+			movePlr(mainWorld, enemies, spawnLevel, plrX, plrY, plrX + 1, plrY);
 			break;
+		case 'Q':
+			plrLvl += attack(enemies, plrX, plrY, plrD, 0, plrLvl, plrLvl >= 40);
 		case 'X':
 			if (plrLvl >= 5) {
-
+				plrLvl += attack(enemies, plrX, plrY, plrD, 1, plrLvl, plrLvl >= 30) / plrLvl;
 			}
 			break;
 		case 'Z':
 			if (plrLvl >= 10) {
-
+				plrLvl += attack(enemies, plrX, plrY, plrD, 2, plrLvl, plrLvl >= 20) / plrLvl;
 			}
 			break;
 		case 'C':
 			if (plrLvl >= 15) {
-
+				plrLvl += attack(enemies, plrX, plrY, plrD, 3, plrLvl, plrLvl >= 20) / plrLvl;
 			}
 			break;
 		case 'V':
 			if (plrLvl >= 20) {
-
+				plrLvl += attack(enemies, plrX, plrY, plrD, 4, plrLvl, plrLvl >= 25) / plrLvl;
 			}
 			break;
 		default:
@@ -176,26 +192,37 @@ int attack(int enemies[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int po
 				if (enemies[tx][ty] <= 0) {
 					kills++;
 				}
+				if (knockback) {
+					knock(x, y, tx, ty, enemies);
+				}
 			}
 		}
 	case 3:
 		// frozen arc
 		if (dir == 0 || dir == 1) {
 			for (int i = -1; i < 2; i++) {
-				if (enemies[tx][ty+i] > 0 && enemies[tx][ty+i] <= power) {
-					kills++;
-				}
-				enemies[tx][ty + i] = clamp(enemies[tx][ty + i] - power, 0, enemies[tx][ty + i]);
-				if (knockback) {
+				if (enemies[tx][ty + i] > 0) {
+					if (enemies[tx][ty + i] <= power) {
+						kills++;
+					}
+					enemies[tx][ty + i] = clamp(enemies[tx][ty + i] - power, 0, enemies[tx][ty + i]);
+					if (knockback) {
+						knock(x, y, tx, ty + i, enemies);
+					}
 				}
 			}
 		}
 		else {
 			for (int i = -1; i < 2; i++) {
-				if (enemies[tx + i][ty] > 0 && enemies[tx + i][ty] <= power) {
-					kills++;
+				if (enemies[tx + i][ty] > 0) {
+					if (enemies[tx + i][ty] <= power) {
+						kills++;
+					}
+					enemies[tx + i][ty] = clamp(enemies[tx + i][ty] - power, 0, enemies[tx + i][ty]);
+					if (knockback) {
+						knock(x, y, tx + i, ty, enemies);
+					}
 				}
-				enemies[tx+i][ty] = clamp(enemies[tx+i][ty] - power, 0, enemies[tx+i][ty]);
 			}
 		}
 	case 4:
@@ -206,8 +233,11 @@ int attack(int enemies[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int po
 		enemy -= power * 2;
 		for (int dx = -1; dx < tx + 1; dx++) {
 			for (int dy = -1; dy < ty + 1; dy++) {
-				if (enemies[dx][dy] > 0 && enemies[dx][dy] <= power * 2) {
-					kills++;
+				if (enemies[dx][dy] > 0) {
+					if (enemies[dx][dy] <= power * 2) {
+						kills++;
+					}
+					knock(x, y, dx, dy, enemies);
 				}
 				enemies[dx][dy] -= power * 2;
 			}
@@ -215,8 +245,8 @@ int attack(int enemies[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int po
 	}
 	return kills;
 }
-void enemyAI(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& playerX, int& playerY, int playerDirection, int& plrLvl, int& plrH, int& spawnTimer) {
-	static string enemyTypes = "0123456789?";
+void enemyAI(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& playerX, int& playerY, int playerDirection, double& plrLvl, int& plrH, int& spawnTimer) {
+	//static string enemyTypes = "0123456789?";
 	int spawnType;
 	int spawnX, spawnY;
 	int movX, movY;
@@ -224,13 +254,14 @@ void enemyAI(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& pla
 	spawnTimer++;
 	if (spawnTimer > SPAWNRATE) {
 		spawnTimer -= SPAWNRATE;
-		spawnType = rand() % (plrLvl/2);
+		spawnType = rand() % ((int)plrLvl/2+1) + 1;
+		//spawnType = plrLvl;
 		spawnX = rand() % WWIDTH;
 		spawnY = rand() % WHEIGHT;
 		switch (world[spawnX][spawnY]) {
 		case ' ':
 		case '=':
-			world[spawnX][spawnY] += spawnType;
+			enemies[spawnX][spawnY] += spawnType;
 		}
 	}
 
@@ -299,23 +330,31 @@ void enemyAI(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& pla
 		}
 	}
 }
-void displayWorld(char world[WWIDTH][WHEIGHT], int playerX, int playerY, int playerDirection)
+void displayWorld(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int playerX, int playerY, int playerDirection)
 {
 	static char buffer[WWIDTH][WHEIGHT];
+	static string enemyTypes = "0123456789?";
 	for (int x = 0; x < WWIDTH; x++) {
 		for (int y = 0; y < WHEIGHT; y++) {
 			buffer[x][y] = world[x][y];
+			if (enemies[x][y] > 0) {
+				buffer[x][y] = enemyTypes[clamp(enemies[x][y] / 5, 0, 10)];
+			}
 		}
 	}
 	switch (playerDirection) {
 	case 0:
 		buffer[playerX][playerY] = '<';
+		break;
 	case 1:
 		buffer[playerX][playerY] = '>';
+		break;
 	case 2:
 		buffer[playerX][playerY] = '^';
+		break;
 	case 3:
 		buffer[playerX][playerY] = 'v';
+		break;
 	}
 	for (int y = 0; y < WHEIGHT; y++) {
 		for (int x = 0; x < WWIDTH; x++) {
@@ -330,7 +369,7 @@ void readWorld(char world[WWIDTH][WHEIGHT], string file)
 	ifstream reader;
 	reader.open(file);
 	// ignoring weird fuckery at the beginning.
-	reader.ignore(3);
+	//reader.ignore(3);
 	// spaces are important
 	reader >> noskipws;
 	// read tiles
@@ -343,7 +382,7 @@ void readWorld(char world[WWIDTH][WHEIGHT], string file)
 	}
 }
 //	move the player to a new location, or refuse if said location is blocked
-bool movePlr(char world[WWIDTH][WHEIGHT], int & plrX, int & plrY, int newX, int newY)
+bool movePlr(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& spawnLvl, int & plrX, int & plrY, int newX, int newY)
 {
 	if (newX >= 0 && newY >= 0 && newX < WWIDTH && newY < WHEIGHT) {
 		switch (world[newX][newY]) {
@@ -352,6 +391,32 @@ bool movePlr(char world[WWIDTH][WHEIGHT], int & plrX, int & plrY, int newX, int 
 			plrX = newX;
 			plrY = newY;
 			return true;
+			break;
+		case '+':
+			plrX = newX;
+			plrY = newY;
+			world[newX][newY] = ' ';
+			return true;
+			break;
+		case 'o':
+			readWorld(world, "Dungeon.txt");
+			spawnLvl = 1;
+			for (int x = 0; x < WWIDTH; x++) {
+				for (int y = 0; y < WHEIGHT; y++) {
+					enemies[x][y] = 0;
+				}
+			}
+			plrX = 2;
+			plrY = 13;
+			return true;
+			break;
+		case 'O':
+			readWorld(world, "Overworld.txt");
+			spawnLvl = 0;
+			plrX = 12;
+			plrY = 14;
+			return true;
+			break;
 		default:
 			return false;
 		}
