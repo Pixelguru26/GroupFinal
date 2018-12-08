@@ -24,11 +24,10 @@ using namespace std;
 //	world dimensions
 const int WWIDTH = 64;
 const int WHEIGHT = 16;
-const int ENEMYSIZE = 4;
 const int SPAWNRATE = 2;
 
 // forward declarations
-int attack(int enemies[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int power, bool knockback);
+int attack(int enemies[WWIDTH][WHEIGHT], char world[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int power, bool knockback);
 void displayWorld(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int playerX, int playerY, int playerDirection);
 void readWorld(char world[WWIDTH][WHEIGHT], string file);
 bool movePlr(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& spawnLvl, int& plrX, int& plrY, int newX, int newY);
@@ -43,6 +42,8 @@ void game() {
 	int enemies[WWIDTH][WHEIGHT];
 	int spawnTimer = 0;
 	int spawnLevel = 0;
+	int turn = 0;
+	int kills = 0;
 
 	// player data
 	int plrX = WWIDTH/2;
@@ -69,6 +70,9 @@ void game() {
 		if (fmod(plrLvl, 1) > 0.1) {
 			cout << string(fmod(plrLvl, 1) * 10, '=');
 		}
+		else {
+			cout << plrLvl;
+		}
 		cout << string(10 - fmod(plrLvl, 1) * 10, ' ') << " || " << endl;
 		cout << "HP: " << string(plrH, '+') << endl;
 		cout << "Gil $: " << gil << "\tWood T: " << wood << "\tArt @: " << art << endl;
@@ -81,7 +85,8 @@ void game() {
 			input[i] = __ascii_toupper(input[i]);
 		}
 
-		if (spawnLevel > 0) {
+		kills = 0;
+		if (spawnLevel > 0 && turn % 2 == 0) {
 			enemyAI(mainWorld, enemies, plrX, plrY, plrD, plrLvl, plrH, spawnTimer);
 		}
 
@@ -104,31 +109,58 @@ void game() {
 			movePlr(mainWorld, enemies, spawnLevel, plrX, plrY, plrX + 1, plrY);
 			break;
 		case 'Q':
-			plrLvl += attack(enemies, plrX, plrY, plrD, 0, plrLvl, plrLvl >= 40);
+			kills += attack(enemies, mainWorld, plrX, plrY, plrD, 0, plrLvl, plrLvl >= 40);
+			// getting wood, because that's not pointless, right?
+			switch (plrD) {
+			case 0: // l
+				if (mainWorld[plrX - 1][plrY] == 'T') {
+					wood++;
+				}
+				break;
+			case 1: // r
+				if (mainWorld[plrX + 1][plrY] == 'T') {
+					wood++;
+				}
+				break;
+			case 2: // u
+				if (mainWorld[plrX][plrY-1] == 'T') {
+					wood++;
+				}
+				break;
+			case 3: // d
+				if (mainWorld[plrX][plrY+1] == 'T') {
+					wood++;
+				}
+				break;
+			}
 		case 'X':
 			if (plrLvl >= 5) {
-				plrLvl += attack(enemies, plrX, plrY, plrD, 1, plrLvl, plrLvl >= 30) / plrLvl;
+				kills += attack(enemies, mainWorld, plrX, plrY, plrD, 1, plrLvl, plrLvl >= 30);
 			}
 			break;
 		case 'Z':
 			if (plrLvl >= 10) {
-				plrLvl += attack(enemies, plrX, plrY, plrD, 2, plrLvl, plrLvl >= 20) / plrLvl;
+				kills += attack(enemies, mainWorld, plrX, plrY, plrD, 2, plrLvl, plrLvl >= 20);
 			}
 			break;
 		case 'C':
 			if (plrLvl >= 15) {
-				plrLvl += attack(enemies, plrX, plrY, plrD, 3, plrLvl, plrLvl >= 20) / plrLvl;
+				kills += attack(enemies, mainWorld, plrX, plrY, plrD, 3, plrLvl, plrLvl >= 20);
 			}
 			break;
 		case 'V':
 			if (plrLvl >= 20) {
-				plrLvl += attack(enemies, plrX, plrY, plrD, 4, plrLvl, plrLvl >= 25) / plrLvl;
+				kills += attack(enemies, mainWorld, plrX, plrY, plrD, 4, plrLvl, plrLvl >= 25);
 			}
 			break;
 		default:
 			if (input == "QUIT")
 				running = false;
 		}
+		art += kills;
+		plrLvl += kills / plrLvl;
+		gil += (rand() % (kills+1))* 5;
+		turn++;
 	}
 }
 
@@ -138,7 +170,7 @@ void knock(int ax, int ay, int bx, int by, int enemies[WWIDTH][WHEIGHT]) {
 	enemies[cx][cy] += enemies[bx][by];
 	enemies[bx][by] = 0;
 }
-int attack(int enemies[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int power, bool knockback) {
+int attack(int enemies[WWIDTH][WHEIGHT], char world[WWIDTH][WHEIGHT], int x, int y, int dir, int type, int power, bool knockback) {
 	int tx = x;
 	int ty = y;
 	int kills = 0;
@@ -315,16 +347,18 @@ void enemyAI(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& pla
 					movX = x;
 					movY = y;
 				}
-				enemies[movX][movY] += enemies[x][y];
-				enemies[x][y] = 0;
+				if (movX != x || movY != y) {
+					enemies[movX][movY] += enemies[x][y];
+					enemies[x][y] = 0;
+				}
 				// apply attack behavior
 				if (dist <= 1) {
 					plrH -= enemies[x][y] / 4;
 					// knockback from high levels
-					if (enemies[x][y] > plrLvl * 2) {
+					/*if (enemies[x][y] > plrLvl * 2) {
 						playerX += (playerX - x);
 						playerY += (playerY - y);
-					}
+					}*/
 				}
 			}
 		}
@@ -367,6 +401,7 @@ void displayWorld(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int
 void readWorld(char world[WWIDTH][WHEIGHT], string file)
 {
 	ifstream reader;
+	reader.clear();
 	reader.open(file);
 	// ignoring weird fuckery at the beginning.
 	//reader.ignore(3);
@@ -415,6 +450,20 @@ bool movePlr(char world[WWIDTH][WHEIGHT], int enemies[WWIDTH][WHEIGHT], int& spa
 			spawnLvl = 0;
 			plrX = 12;
 			plrY = 14;
+			return true;
+			break;
+		case 'H':
+			readWorld(world, "House.txt");
+			spawnLvl = 0;
+			plrX = 3;
+			plrY = 10;
+			return true;
+			break;
+		case 'I':
+			readWorld(world, "Overworld.txt");
+			spawnLvl = 0;
+			plrX = 61;
+			plrY = 7;
 			return true;
 			break;
 		default:
