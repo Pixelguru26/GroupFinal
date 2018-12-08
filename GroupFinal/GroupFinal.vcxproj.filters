@@ -43,10 +43,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="SeatAvailability.txt">
+    <Text Include="Overworld.txt">
       <Filter>Resource Files</Filter>
     </Text>
-    <Text Include="Overworld.txt">
+    <Text Include="House.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="Dungeon.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

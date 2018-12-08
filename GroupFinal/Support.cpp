@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include "Util.h"
 
@@ -33,6 +34,7 @@ void displaySeats(char chart[15][30]) {
 //	takes file name and returns char[15][30] containing a block of seat data, read from the file or populated empty by default.
 void loadChart(string fileName, char chart[15][30]) {
 	ifstream reader;
+	reader.clear();
 	reader.open(fileName);
 	// "DNE" case - file will be created later if it does not exist.
 	if (!reader.good()) {
@@ -57,6 +59,7 @@ void loadChart(string fileName, char chart[15][30]) {
 //	takes file name and chart, writes seat data to file as a block
 void saveChart(string fileName, char chart[15][30]) {
 	ofstream writer;
+	writer.clear();
 	writer.open(fileName);
 	for (int y = 0; y < 15; y++) {
 		for (int x = 0; x < 30; x++) {
@@ -76,39 +79,44 @@ void resetChart(string fileName, char chart[15][30]) {
 	saveChart(fileName, chart);
 }
 //	???
-double loadSales(string fileName, vector<string> arr, int& size, int& maxIndex) {
+double loadSales(string fileName, vector<string>& arr) {
 	ifstream reader;
 	string buffer;
-	maxIndex = 0;
+	reader.clear();
 	reader.open(fileName);
+	arr.clear();
 	if (reader.good()) {
 		while (getline(reader, buffer)) {
-			addItem(arr, size, maxIndex, buffer);
+			arr.push_back(buffer);
 		}
 	}
 	reader.close();
 	return 0; // legacy, I can't change it now.
 }
 //	???
-void saveSales(string fileName, string arr[], int& size, int& maxIndex) {
+void saveSales(string fileName, vector<string>& arr) {
 	ofstream writer;
+	writer.clear();
 	writer.open(fileName);
-	for (int i = 0; i < maxIndex; i++) {
+	for (int i = 0; i < arr.size(); i++) {
 		writer << arr[i] << endl;
 	}
 	writer.close();
 }
 //	???
-double displaySales(string arr[], int& size, int& maxIndex) {
+double displaySales(vector<string>& arr) {
 	stringstream ss;
 	double total = 0;
 	double price;
 	int x, y;
-	for (int i = 0; i < maxIndex; i++) {
+	for (int i = 0; i < arr.size(); i++) {
 		ss << arr[i];
 		ss >> price;
+		ss.ignore();
 		ss >> x;
+		ss.ignore();
 		ss >> y;
+		ss.ignore();
 		if (x == -1) {
 			cout << "PURCHASE #" << i + 1 << ": multipurchase. Seats: " << y << ", cost: $" << price << endl;
 			total += price;

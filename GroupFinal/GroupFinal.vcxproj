@@ -126,8 +126,9 @@
     <ClInclude Include="Util.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Dungeon.txt" />
+    <Text Include="House.txt" />
     <Text Include="Overworld.txt" />
-    <Text Include="SeatAvailability.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Util.cpp" />

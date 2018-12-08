@@ -46,11 +46,11 @@ void game() {
 	int plrX = WWIDTH/2;
 	int plrY = WHEIGHT/2;
 	int plrD = 0; // Direction: lrud | 0123
-	int plrH = 20;
+	int plrH = 10;
 	int gil = 0;
 	int wood = 0;
 	int art = 0;
-	double plrLvl = 20.49738;
+	double plrLvl = 0;
 
 
 	// game state vars

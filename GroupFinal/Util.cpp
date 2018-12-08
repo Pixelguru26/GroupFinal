@@ -29,13 +29,6 @@ int clamp(int v, int a, int b) {
 	return v < a ? a : v > b ? b : v;
 }
 
-// Creates a new extensible array in the passed variables
-void newArray(double arr[], int& size, int& maxIndex) {
-	arr = new double[2];
-	size = 2;
-	maxIndex = 0;
-}
-
 // Appends an item to the extensible array in the passed variables, extends array if needed
 void addItem(double arr[], int& size, int& maxIndex, double item) {
 	double* arr2 = arr;

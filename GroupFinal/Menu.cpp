@@ -13,10 +13,12 @@ Members:
 #include <string>
 #include <fstream>
 #include <filesystem>
+#include <vector>
 
 // project headers
 #include "Proj.h"
 #include "Util.h"
+#include "Game.h"
 
 using namespace std;
 namespace fs = std::experimental::filesystem::v1;
@@ -28,7 +30,7 @@ const double PROMOMULTS[] = { 20000, -1, 2, 0.5, .42 };
 
 // menu function implementations
 //	displays the main menu, and accepts/returns an input selection
-int displayMenu(int state, bool& running, char chart[15][30], string movies[], int & movieSize, int& movieCount, string* sales, int& saleSize, int& saleCount) {
+int displayMenu(int state, bool& running, char chart[15][30], vector<string>& movies, vector<string>& sales) {
 	static int movie = 0;
 	double multiplier = 1;
 	int ret;
@@ -36,14 +38,16 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 	bool menuRunning = true;
 	bool found = false;
 	double total = 0;
+	// This is basically a new main function at this point... oh well.
 	while (menuRunning) {
+		// OUTPUT + INPUT VALIDATION
 		do {
 			system("CLS");
 			switch (state) {
 			case 0: // movie selection
 				cout << "~= MOVIE SELECT =~" << endl;
 				cout << "1 - Admin Menu" << endl;
-				for (int i = 0; i < movieCount; i++) {
+				for (int i = 0; i < movies.size(); i++) {
 					cout << i + 2 << " - " << movies[i] << endl;
 				}
 				break;
@@ -54,7 +58,7 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 				cout << "3 - Cancel" << endl;
 				break;
 			case 2: // main menu
-				cout << "~= MAIN MENU =~" << endl;
+				cout << "~= " << movies[movie] << " =~" << endl;
 				cout << "1 - Make a purchase" << endl;
 				cout << "2 - Display Seating" << endl;
 				cout << "3 - Display Purchases" << endl;
@@ -80,20 +84,22 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 			cout << ">> ";
 			cin >> ret;
 		} while (cinFailCheck() && (cout << "Please enter a valid option." << endl));
+		// INPUT OPERATION
 		switch (state) {
 		case 0: // movie list menu
 			switch (ret - 1) {
 			case 0: // admin menu
 				if (admin()) {
-					displayMenu(1, running, chart, movies, movieSize, movieCount, sales, saleSize, saleCount);
+					displayMenu(1, running, chart, movies, sales);
 				}
+			case 42:
+				game();
 			default: // loads a theatre and enters the menu with it
-				if (ret - 2 >= 0 && ret - 2 < movieCount) {
+				if (ret - 2 >= 0 && ret - 2 < movies.size()) {
 					movie = ret - 2;
 					loadChart("Movies\\" + movies[movie] + "\\SeatAvailability.txt", chart);
-					saleCount = 0;
-					loadSales("Movies\\" + movies[movie] + "\\SeatAvailability.txt", sales, saleSize, saleCount);
-					displayMenu(2, running, chart, movies, movieSize, movieCount, sales, saleSize, saleCount);
+					loadSales("Movies\\" + movies[movie] + "\\Sales.txt", sales);
+					displayMenu(2, running, chart, movies, sales);
 				}
 				else {
 					cout << ret << " is not a valid menu option." << endl;
@@ -106,25 +112,28 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 				cout << "Please enter a name for the new movie: ";
 				cin.ignore();
 				getline(cin, buffer);
-				addItem(movies, movieSize, movieCount, buffer);
+				//addItem(movies, movieSize, movieCount, buffer);
+				movies.push_back(buffer);
 				buffer = "Movies\\" + buffer;
 				if (!fs::is_directory(buffer) || !fs::exists(buffer)) { // Check if folder exists
 					fs::create_directory(buffer); // create folder
 				}
 				loadChart(buffer + "\\SeatAvailability.txt", chart);
+				loadSales(buffer + "\\Sales.txt", sales);
 				saveChart(buffer + "\\SeatAvailability.txt", chart);
+				saveSales(buffer + "\\Sales.txt", sales);
 				break;
 			case 1: // remove a movie
-				for (int i = 0; i < movieCount; i++) {
+				for (int i = 0; i < movies.size(); i++) {
 					cout << i+1 << " : " << movies[i] << endl;
 				}
 				cout << "Please select the deletion candidate: ";
 				cin >> ret;
 				ret--;
-				if (!cinFailCheck() && ret >= 0 && ret < movieCount) {
+				if (!cinFailCheck() && ret >= 0 && ret < movies.size()) {
 					if (confirm("Are you sure? This cannot be undone.")) {
 						cout << "DELETING MOVIE" << endl;
-						remItem(movies, movieSize, movieCount, ret);
+						movies.erase(movies.begin() + ret);
 						fs::remove_all("Moves\\" + movies[ret]);
 					}
 				}
@@ -142,7 +151,7 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 		case 2: // movie menu
 			switch (ret - 1) {
 			case 0: // purchase menu
-				displayMenu(3, running, chart, movies, movieSize, movieCount, sales, saleSize, saleCount);
+				displayMenu(3, running, chart, movies, sales);
 				break;
 			case 1: // display seating
 				system("CLS");
@@ -152,11 +161,11 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 			case 2: // display purchases
 				system("CLS");
 				cout << "The sales history for this movie is as follows, with promo codes hidden:" << endl;
-				displaySales(sales, saleSize, saleCount);
+				displaySales(sales);
 				break;
 			case 3: // admin menu
 				if (admin()) {
-					displayMenu(4, running, chart, movies, movieSize, movieCount, sales, saleSize, saleCount);
+					displayMenu(4, running, chart, movies, sales);
 				}
 				break;
 			case 4: // cancel
@@ -175,25 +184,25 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 				system("CLS");
 				cout << "The seating chart is as follows, with seats marked # being available: " << endl;
 				displaySeats(chart);
-				requestTicket(chart, sales, saleSize, saleCount, multiplier);
+				requestTicket(chart, sales, multiplier);
 				saveChart("Movies\\" + movies[movie] + "\\SeatAvailability.txt", chart);
-				saveSales("Movies\\" + movies[movie] + "\\Sales.txt", sales, saleSize, saleCount);
+				saveSales("Movies\\" + movies[movie] + "\\Sales.txt", sales);
 				break;
 			case 1: // purchase multiple seats
 				system("CLS");
 				cout << "The seating chart is as follows, with seats marked # being available: " << endl;
 				displaySeats(chart);
-				requestTickets(chart, sales, saleSize, saleCount, multiplier);
+				requestTickets(chart, sales, multiplier);
 				saveChart("Movies\\" + movies[movie] + "\\SeatAvailability.txt", chart);
-				saveSales("Movies\\" + movies[movie] + "\\Sales.txt", sales, saleSize, saleCount);
+				saveSales("Movies\\" + movies[movie] + "\\Sales.txt", sales);
 				break;
 			case 2: // find seats
 				system("CLS");
 				cout << "The seating chart is as follows, with seats marked # being available: " << endl;
 				displaySeats(chart);
-				findTickets(chart, sales, saleSize, saleCount, multiplier);
+				findTickets(chart, sales, multiplier);
 				saveChart("Movies\\" + movies[movie] + "\\SeatAvailability.txt", chart);
-				saveSales("Movies\\" + movies[movie] + "\\Sales.txt", sales, saleSize, saleCount);
+				saveSales("Movies\\" + movies[movie] + "\\Sales.txt", sales);
 				break;
 			case 3: // apply discount
 				cout << "Do you have a promo code? If so, enter it below:" << endl;
@@ -224,17 +233,17 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 			case 0: // clear all
 				if (confirm("Are you sure? This cannot be undone.")) {
 					resetChart("Movies\\" + movies[movie] + "\\SeatAvailability.txt", chart);
-					saleCount = 0;
-					saveSales("Movies\\" + movies[movie] + "\\SeatAvailability.txt", sales, saleSize, saleCount);
+					sales.clear();
+					saveSales("Movies\\" + movies[movie] + "\\SeatAvailability.txt", sales);
 				}
 				break;
 			case 1: // refund a purchase
-				displaySales(sales, saleSize, saleCount);
+				displaySales(sales);
 				cout << "Which would you like to refund? >> ";
 				cin >> ret;
 				ret--;
-				if (!cinFailCheck() && ret >= 0 && ret < saleCount) {
-					remItem(sales, saleSize, saleCount, ret);
+				if (!cinFailCheck() && ret >= 0 && ret < sales.size()) {
+					sales.erase(sales.begin() + ret);
 				}
 				else {
 					cout << "Invalid option. Try again." << endl;
@@ -242,8 +251,8 @@ int displayMenu(int state, bool& running, char chart[15][30], string movies[], i
 				break;
 			case 2: // sales report
 				cout << "Sales history is as follows, with promo codes hidden:" << endl;
-				total = displaySales(sales, saleSize, saleCount);
-				cout << "Total sales from this theatre : " << saleCount << endl;
+				total = displaySales(sales);
+				cout << "Total sales from this theatre : " << sales.size() << endl;
 				cout << "Gross income from this theatre: $" << total << endl;
 				break;
 			case 3: // cancel
@@ -278,10 +287,12 @@ bool confirm(string prompt) {
 	cin >> buffer;
 	return (buffer[0] == 'y' || buffer[0] == 'Y');
 }
-void newSale(string* sales, int& saleSize, int& saleCount, double amount, int x, int y) {
-	addItem(sales, saleSize, saleCount, to_string(amount) + "," + to_string(x) + "," + to_string(y));
+void newSale(vector<string>& sales, double amount, int x, int y) {
+	//addItem(sales, saleSize, saleCount, to_string(amount) + "," + to_string(x) + "," + to_string(y));
+	//cout << to_string(amount) + "," + to_string(x) + "," + to_string(y) << endl;
+	sales.push_back(to_string(amount) + "," + to_string(x) + "," + to_string(y));
 }
-void requestTicket(char chart[15][30], string* sales, int& saleSize, int& saleCount, double multiplier) {
+void requestTicket(char chart[15][30], vector<string>& sales, double multiplier) {
 	int row, column;
 	cout << "Where would you like to buy a seat?" << endl;
 	cout << "Row: ";
@@ -292,18 +303,21 @@ void requestTicket(char chart[15][30], string* sales, int& saleSize, int& saleCo
 	do {
 		cin >> column;
 	} while ((cinFailCheck() || column < 1 || column > 30) && (cout << "That's not a valid option." << endl));
+	row--;
+	column--;
 	if (chart[row][column] == '*') {
 		cout << "That seat is taken. Please try again." << endl;
 	}
 	else {
 		cout << "Perfect! Your purchase comes out to $" << getPrice(row)*multiplier << endl;
 		if (confirm("Is this suitable?")) {
-			newSale(sales, saleSize, saleCount, getPrice(row)*multiplier, column, row);
+			chart[row][column] = '*';
+			newSale(sales, getPrice(row)*multiplier, column, row);
 		}
 	}
 }
 //	performs ticket request action
-void requestTickets(char chart[15][30], string* sales, int& saleSize, int& saleCount, double multiplier) {
+void requestTickets(char chart[15][30], vector<string>& sales, double multiplier) {
 	int count;
 	double total = 0;
 	cout << "How many tickets would you like to purchase? >> ";
@@ -320,6 +334,8 @@ void requestTickets(char chart[15][30], string* sales, int& saleSize, int& saleC
 			do {
 				cin >> columns[i];
 			} while ((cinFailCheck() || columns[i] < 1 || columns[i] > 30) && (cout << "That's not a valid option." << endl));
+			rows[i]--;
+			columns[i]--;
 			if (chart[rows[i]][columns[i]] == '*') {
 				cout << "That seat is taken. Please try again." << endl;
 				return;
@@ -330,7 +346,10 @@ void requestTickets(char chart[15][30], string* sales, int& saleSize, int& saleC
 		}
 		cout << "Perfect! Your purchase comes out to $" << total << endl;
 		if (confirm("Is this suitable?")) {
-			newSale(sales, saleSize, saleCount, total, -1, count);
+			for (int i = 0; i < count; i++) {
+				chart[rows[i]][columns[i]] = '*';
+			}
+			newSale(sales, total, -1, count);
 		}
 	}
 	else {
@@ -338,7 +357,7 @@ void requestTickets(char chart[15][30], string* sales, int& saleSize, int& saleC
 	}
 }
 //	finds ticket locations
-void findTickets(char chart[15][30], string* sales, int& saleSize, int& saleCount, double multiplier) {
+void findTickets(char chart[15][30], vector<string>& sales, double multiplier) {
 	int ticketCount;
 	int* rows;
 	int* columns;
@@ -371,7 +390,7 @@ void findTickets(char chart[15][30], string* sales, int& saleSize, int& saleCoun
 			for (int i = 0; i < ticketCount; i++) {
 				chart[columns[i]][rows[i]] = '*';
 			}
-			newSale(sales, saleSize, saleCount, price, -1, ticketCount);
+			newSale(sales, price, -1, ticketCount);
 			cout << "The purchase has been confirmed, and the seats reserved." << endl;
 		}
 		else {
@@ -382,7 +401,7 @@ void findTickets(char chart[15][30], string* sales, int& saleSize, int& saleCoun
 	}
 }
 //	displays a sales report based on seat information
-void salesReport(char chart[15][30], string* sales, int& saleSize, int& saleCount) {
+void salesReport(char chart[15][30], vector<string>& sales) {
 	int count = 0;
 	double total = 0;
 	for (int y = 0; y < 15; y++) {
@@ -395,24 +414,6 @@ void salesReport(char chart[15][30], string* sales, int& saleSize, int& saleCoun
 	}
 	cout << "Seats sold: " << count << endl;
 	cout << "Revenue: $" << total << endl;
-}
-//	displays a confirmation, then resets seat availability
-void resetAvailability(char chart[15][30], string* sales, int& saleSize, int& saleCount) {
-	char input;
-	string pass;
-	cout << "Are you sure you wish to clear all seat availability information and sales?\nThis cannot be undone. (Y/n): ";
-	cin >> input;
-	if (input == 'Y' || input == 'y') {
-		cout << "Please enter the password: ";
-		cin >> pass;
-		if (pass == "admin")
-		{
-			resetChart("SeatAvailability.txt", chart);
-		}
-		else {
-			cout << "Incorrect password. Returning to main menu." << endl;
-		}
-	}
 }
 //	quit confirmation
 void quitMenu(bool& running) {
