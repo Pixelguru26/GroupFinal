@@ -1,12 +1,5 @@
 // Menu option implementations
 
-/*
-Members:
-	Blake Johns
-	Ryan Morgan
-	Caleb Tomlinson
-*/
-
 // core headers
 #include <iostream>
 #include <iomanip>
@@ -92,7 +85,7 @@ int displayMenu(int state, bool& running, char chart[15][30], vector<string>& mo
 				if (admin()) {
 					displayMenu(1, running, chart, movies, sales);
 				}
-			case 42:
+			case 41:
 				game();
 			default: // loads a theatre and enters the menu with it
 				if (ret - 2 >= 0 && ret - 2 < movies.size()) {

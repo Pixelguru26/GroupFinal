@@ -1,12 +1,5 @@
 // Utility function implementations
 
-/*
-Members:
-	Blake Johns
-	Ryan Morgan
-	Caleb Tomlinson
-*/
-
 // core headers
 #include <iostream>
 #include <iomanip>
